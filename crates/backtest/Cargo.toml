@@ -1,0 +1,9 @@
+[package]
+name = "bellcurve-backtest"
+version = "0.1.0"
+description = "Replays real stock price history through a constant-product pool and a Bellcurve pool"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+bellcurve-math = { path = "../bellcurve-math" }

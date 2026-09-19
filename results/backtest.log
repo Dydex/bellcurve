@@ -1,0 +1,86 @@
+
+SPY: 12129 bars over 2.9 years, sigma_open 26 bps/sqrt(h), sigma_closed 9 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps         -4.72 ±0.01         -1.62              1             0.00
+  cpmm_100bps        -4.55 ±0.01         -1.56              1             0.00
+  oracle_naive       -8.01 ±4.98         -2.75            100             0.32
+  bellcurve           0.58 ±0.06          0.20            100             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         71.63 ±0.01         24.57      100.0          166.9          158.5
+  cpmm_100bps       203.72 ±0.03         69.89      100.0          201.6          196.3
+  oracle_naive       81.95 ±7.33         28.11       86.3           72.6           80.3
+  bellcurve         150.02 ±0.02         51.47       99.9           68.4          171.9
+
+QQQ: 12103 bars over 2.9 years, sigma_open 44 bps/sqrt(h), sigma_closed 14 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps         -5.88 ±0.03         -2.02              1             0.00
+  cpmm_100bps        -6.07 ±0.01         -2.08              0             0.00
+  oracle_naive      -21.93 ±10.78        -7.52            100             0.62
+  bellcurve          -0.20 ±0.11         -0.07            100             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         74.20 ±0.01         25.46      100.0          164.0          155.5
+  cpmm_100bps       212.54 ±0.08         72.92      100.0          199.8          194.5
+  oracle_naive       68.47 ±15.92        23.49       83.3           72.4           89.0
+  bellcurve         191.18 ±0.92         65.59      100.0           65.5          194.7
+
+NVDA: 12103 bars over 2.9 years, sigma_open 106 bps/sqrt(h), sigma_closed 27 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps        -53.57 ±0.20        -18.38              1             0.00
+  cpmm_100bps       -60.96 ±0.33        -20.91              0             0.00
+  oracle_naive     -165.83 ±23.18       -56.90            100             1.37
+  bellcurve         -11.85 ±0.83         -4.07             99             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         39.98 ±0.09         13.72      100.0          126.8          120.6
+  cpmm_100bps       196.17 ±0.21         67.30      100.0          176.8          172.6
+  oracle_naive      -83.88 ±37.39       -28.78       80.0           67.5          105.6
+  bellcurve         300.80 ±0.81        103.20      100.0           47.9          238.2
+
+TSLA: 12102 bars over 2.9 years, sigma_open 103 bps/sqrt(h), sigma_closed 28 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps         13.06 ±0.04          4.48              2             0.00
+  cpmm_100bps        10.48 ±0.16          3.59              1             0.00
+  oracle_naive      -74.54 ±6.24        -25.57            100             0.93
+  bellcurve          -1.91 ±0.70         -0.66            100             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         93.17 ±0.06         31.96      100.0          164.6          155.0
+  cpmm_100bps       232.47 ±0.24         79.76      100.0          200.3          193.6
+  oracle_naive      -16.62 ±2.14         -5.70       79.2           88.5          131.9
+  bellcurve         214.39 ±1.48         73.55      100.0           66.1          275.5
+
+AAPL: 12102 bars over 2.9 years, sigma_open 46 bps/sqrt(h), sigma_closed 14 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps         -3.78 ±0.03         -1.30              2             0.00
+  cpmm_100bps        -3.96 ±0.01         -1.36              1             0.00
+  oracle_naive       -1.79 ±6.91         -0.61            100             0.57
+  bellcurve          -0.21 ±0.06         -0.07            100             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         79.04 ±0.02         27.12      100.0          169.7          160.8
+  cpmm_100bps       223.03 ±0.20         76.52      100.0          203.2          197.6
+  oracle_naive      101.98 ±20.66        34.99       83.8           76.1           90.6
+  bellcurve         195.98 ±0.07         67.24      100.0           69.7          202.1
+
+MSTR: 12098 bars over 2.9 years, sigma_open 131 bps/sqrt(h), sigma_closed 57 bps/sqrt(h), 163 weekends/holidays
+  informed traders only (losses to adverse selection)
+  venue              LP vs hodl %   per year % closed-hours %  worst weekend %
+  cpmm_30bps         -5.05 ±0.15         -1.73             11             0.02
+  cpmm_100bps        -2.54 ±0.64         -0.87             10             0.01
+  oracle_naive     -235.74 ±6.05        -80.88            100             2.06
+  bellcurve          20.57 ±5.35          7.06             99             0.00
+  with realistic uninformed flow
+  venue              LP vs hodl %   per year %     fill %  cost open bps cost closed bps
+  cpmm_30bps         65.72 ±0.02         22.55      100.0          107.6          102.9
+  cpmm_100bps       196.76 ±0.18         67.51      100.0          163.8          159.5
+  oracle_naive     -167.76 ±9.07        -57.55       76.3           95.7          204.5
+  bellcurve         369.36 ±12.75       126.72      100.0           38.0          400.1
+
+wrote results/backtest.json
