@@ -1,0 +1,8 @@
+[package]
+name = "bellcurve-math"
+version = "0.1.0"
+description = "Market-hours-aware pricing math for Bellcurve, shared by the on-chain program and the backtester"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]

@@ -1,0 +1,22 @@
+skip_local_validator = true
+
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+bellcurve = "3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF"
+
+[programs.devnet]
+bellcurve = "3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]
