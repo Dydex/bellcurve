@@ -1,0 +1,12 @@
+{
+  "cluster": "devnet",
+  "ticker": "NVDA",
+  "programId": "3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF",
+  "pool": "AtW5Ydmez3DbBL1AhXicW38XfSGhX2xyjk5CfheaaD26",
+  "baseMint": "EMWRdWpkyGVV4oQrfS4DxG9J66btCxPqo8U7HCU26CVV",
+  "quoteMint": "3w9sApFyx7UDsfwviYemgM9L9HuhykmPCxnZZrxX4dDw",
+  "lpMint": "3EfFW7TavBm2eUZFYDEAozYQcECEAZnpLsKpQNU6Hxah",
+  "baseVault": "Cg31W6wppumaJe9p4xSyNLWmz1s9mttxwm8phJvvtycS",
+  "quoteVault": "G2wcTrgaiD2cFr7oNuZyDQbgkxeFgrzmR6hFca8puAQn",
+  "admin": "8c1FFL1itUpV1ErwwaeRSUFWDU9UpaTkXSHz8WEtWZwu"
+}

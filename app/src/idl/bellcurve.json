@@ -1,0 +1,1286 @@
+{
+  "address": "3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF",
+  "metadata": {
+    "name": "bellcurve",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "A market-hours-aware AMM for tokenized stocks"
+  },
+  "docs": [
+    "Bellcurve: a market-hours-aware AMM for tokenized stocks."
+  ],
+  "instructions": [
+    {
+      "name": "deposit",
+      "discriminator": [
+        242,
+        35,
+        198,
+        137,
+        82,
+        225,
+        242,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "base_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "lp_mint",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "base_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "owner_base",
+          "writable": true
+        },
+        {
+          "name": "owner_quote",
+          "writable": true
+        },
+        {
+          "name": "owner_lp",
+          "writable": true
+        },
+        {
+          "name": "trader_pass",
+          "docs": [
+            "Required for deposits into a permissioned pool."
+          ],
+          "optional": true
+        },
+        {
+          "name": "base_token_program"
+        },
+        {
+          "name": "quote_token_program"
+        },
+        {
+          "name": "lp_token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "base_in",
+          "type": "u64"
+        },
+        {
+          "name": "quote_in",
+          "type": "u64"
+        },
+        {
+          "name": "min_lp_out",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_pool",
+      "discriminator": [
+        95,
+        180,
+        10,
+        172,
+        84,
+        174,
+        232,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_mint"
+              },
+              {
+                "kind": "account",
+                "path": "quote_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "base_mint"
+        },
+        {
+          "name": "quote_mint"
+        },
+        {
+          "name": "lp_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  112
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "base_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "base_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "base_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "quote_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "quote_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "quote_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "base_token_program"
+        },
+        {
+          "name": "quote_token_program"
+        },
+        {
+          "name": "lp_token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "PoolParams"
+            }
+          }
+        },
+        {
+          "name": "keeper",
+          "type": "pubkey"
+        },
+        {
+          "name": "gatekeeper",
+          "type": "pubkey"
+        },
+        {
+          "name": "permissioned",
+          "type": "bool"
+        },
+        {
+          "name": "daily_volume_cap",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "issue_pass",
+      "discriminator": [
+        250,
+        54,
+        53,
+        228,
+        201,
+        116,
+        71,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "gatekeeper",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "pool"
+        },
+        {
+          "name": "pass",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "arg",
+                "path": "trader"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "trader",
+          "type": "pubkey"
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "revoke_pass",
+      "discriminator": [
+        8,
+        206,
+        136,
+        100,
+        178,
+        219,
+        168,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "gatekeeper",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "pool",
+          "relations": [
+            "pass"
+          ]
+        },
+        {
+          "name": "pass",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "swap",
+      "discriminator": [
+        248,
+        198,
+        158,
+        145,
+        225,
+        117,
+        135,
+        200
+      ],
+      "accounts": [
+        {
+          "name": "trader",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "base_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "base_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "trader_base",
+          "writable": true
+        },
+        {
+          "name": "trader_quote",
+          "writable": true
+        },
+        {
+          "name": "trader_pass",
+          "docs": [
+            "Required only when the pool is permissioned."
+          ],
+          "optional": true
+        },
+        {
+          "name": "base_token_program"
+        },
+        {
+          "name": "quote_token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "side",
+          "type": "u8"
+        },
+        {
+          "name": "amount_in",
+          "type": "u64"
+        },
+        {
+          "name": "min_out",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_config",
+      "discriminator": [
+        29,
+        158,
+        252,
+        191,
+        10,
+        83,
+        219,
+        99
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "pool",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "PoolParams"
+            }
+          }
+        },
+        {
+          "name": "keeper",
+          "type": "pubkey"
+        },
+        {
+          "name": "gatekeeper",
+          "type": "pubkey"
+        },
+        {
+          "name": "permissioned",
+          "type": "bool"
+        },
+        {
+          "name": "daily_volume_cap",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "update_market",
+      "discriminator": [
+        153,
+        39,
+        2,
+        197,
+        179,
+        50,
+        199,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "base_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "base_vault",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_vault",
+          "relations": [
+            "pool"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "status",
+          "type": {
+            "defined": {
+              "name": "MarketStatus"
+            }
+          }
+        },
+        {
+          "name": "ref_price",
+          "type": "u64"
+        },
+        {
+          "name": "observed_ts",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "discriminator": [
+        183,
+        18,
+        70,
+        156,
+        148,
+        109,
+        161,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "base_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_mint",
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "lp_mint",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "base_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "quote_vault",
+          "writable": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "owner_base",
+          "writable": true
+        },
+        {
+          "name": "owner_quote",
+          "writable": true
+        },
+        {
+          "name": "owner_lp",
+          "writable": true
+        },
+        {
+          "name": "trader_pass",
+          "docs": [
+            "Required for deposits into a permissioned pool."
+          ],
+          "optional": true
+        },
+        {
+          "name": "base_token_program"
+        },
+        {
+          "name": "quote_token_program"
+        },
+        {
+          "name": "lp_token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "shares",
+          "type": "u64"
+        },
+        {
+          "name": "min_base_out",
+          "type": "u64"
+        },
+        {
+          "name": "min_quote_out",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Pool",
+      "discriminator": [
+        241,
+        154,
+        109,
+        4,
+        17,
+        177,
+        109,
+        188
+      ]
+    },
+    {
+      "name": "TraderPass",
+      "discriminator": [
+        66,
+        150,
+        6,
+        238,
+        82,
+        147,
+        110,
+        150
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "LiquidityChanged",
+      "discriminator": [
+        132,
+        132,
+        193,
+        214,
+        12,
+        99,
+        40,
+        28
+      ]
+    },
+    {
+      "name": "MarketUpdated",
+      "discriminator": [
+        170,
+        51,
+        74,
+        147,
+        116,
+        168,
+        217,
+        251
+      ]
+    },
+    {
+      "name": "SwapExecuted",
+      "discriminator": [
+        150,
+        166,
+        26,
+        225,
+        28,
+        89,
+        38,
+        79
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Halted",
+      "msg": "Trading in the underlying stock is halted"
+    },
+    {
+      "code": 6001,
+      "name": "StalePrice",
+      "msg": "Reference price is too old to trade against"
+    },
+    {
+      "code": 6002,
+      "name": "NoPrice",
+      "msg": "No reference price has been posted yet"
+    },
+    {
+      "code": 6003,
+      "name": "OutsideBand",
+      "msg": "Execution price is outside the allowed price band"
+    },
+    {
+      "code": 6004,
+      "name": "InventoryLimit",
+      "msg": "Trade would push pool inventory past its limit"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientLiquidity",
+      "msg": "Not enough liquidity in the pool"
+    },
+    {
+      "code": 6006,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6007,
+      "name": "EmptyPool",
+      "msg": "Pool has no liquidity"
+    },
+    {
+      "code": 6008,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidParams",
+      "msg": "Invalid pool parameters"
+    },
+    {
+      "code": 6010,
+      "name": "SlippageExceeded",
+      "msg": "Output is below the minimum requested"
+    },
+    {
+      "code": 6011,
+      "name": "VolumeCapExceeded",
+      "msg": "Daily volume cap reached"
+    },
+    {
+      "code": 6012,
+      "name": "PassRequired",
+      "msg": "This pool is permissioned and the trader pass is missing or expired"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidTimestamp",
+      "msg": "Observation timestamp is invalid"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidSide",
+      "msg": "Invalid side"
+    }
+  ],
+  "types": [
+    {
+      "name": "LiquidityChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "deposit",
+            "type": "bool"
+          },
+          {
+            "name": "base_amount",
+            "type": "u64"
+          },
+          {
+            "name": "quote_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lp_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "MarketStatus"
+              }
+            }
+          },
+          {
+            "name": "ref_price",
+            "type": "u64"
+          },
+          {
+            "name": "ref_ts",
+            "type": "i64"
+          },
+          {
+            "name": "close_ts",
+            "type": "i64"
+          },
+          {
+            "name": "virtual_base",
+            "docs": [
+              "Virtual constant-product reserves that price trades while closed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "virtual_quote",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketStatus",
+      "docs": [
+        "Market status as reported by the keeper."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Closed"
+          },
+          {
+            "name": "Halted"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "MarketStatus"
+              }
+            }
+          },
+          {
+            "name": "ref_price",
+            "type": "u64"
+          },
+          {
+            "name": "ref_ts",
+            "type": "i64"
+          },
+          {
+            "name": "close_ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "keeper",
+            "docs": [
+              "Posts reference prices, market open/close and trading halts."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "gatekeeper",
+            "docs": [
+              "Issues trader passes when the pool is permissioned."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "base_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "base_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "quote_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "params",
+            "type": {
+              "defined": {
+                "name": "PoolParams"
+              }
+            }
+          },
+          {
+            "name": "market",
+            "type": {
+              "defined": {
+                "name": "MarketData"
+              }
+            }
+          },
+          {
+            "name": "permissioned",
+            "docs": [
+              "When true every trader and LP needs a valid `TraderPass`."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "daily_volume_cap",
+            "docs": [
+              "Maximum traded value per UTC day in quote units; 0 disables the cap."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "volume_day",
+            "type": "i64"
+          },
+          {
+            "name": "volume_today",
+            "type": "u64"
+          },
+          {
+            "name": "total_volume",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "lp_mint_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolParams",
+      "docs": [
+        "Tunable pricing parameters; mirrors `bellcurve_math::Params`."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "base_half_spread_bps",
+            "type": "u32"
+          },
+          {
+            "name": "sigma_open_bps",
+            "type": "u32"
+          },
+          {
+            "name": "sigma_closed_bps",
+            "type": "u32"
+          },
+          {
+            "name": "spread_z_bps",
+            "type": "u32"
+          },
+          {
+            "name": "max_half_spread_bps",
+            "type": "u32"
+          },
+          {
+            "name": "inventory_skew_bps",
+            "type": "u32"
+          },
+          {
+            "name": "target_base_weight_bps",
+            "type": "u32"
+          },
+          {
+            "name": "impact_bps",
+            "type": "u32"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u32"
+          },
+          {
+            "name": "band_open_bps",
+            "type": "u32"
+          },
+          {
+            "name": "band_closed_bps",
+            "type": "u32"
+          },
+          {
+            "name": "min_base_weight_bps",
+            "type": "u32"
+          },
+          {
+            "name": "max_base_weight_bps",
+            "type": "u32"
+          },
+          {
+            "name": "max_staleness_secs",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SwapExecuted",
+      "docs": [
+        "Every trade is public: this is the venue's trade tape."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "docs": [
+              "0 = sell base, 1 = buy base"
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "amount_in",
+            "type": "u64"
+          },
+          {
+            "name": "amount_out",
+            "type": "u64"
+          },
+          {
+            "name": "exec_price",
+            "type": "u64"
+          },
+          {
+            "name": "ref_price",
+            "type": "u64"
+          },
+          {
+            "name": "fee",
+            "type": "u64"
+          },
+          {
+            "name": "half_spread_bps",
+            "type": "u32"
+          },
+          {
+            "name": "skew_bps",
+            "type": "i32"
+          },
+          {
+            "name": "impact_bps",
+            "type": "u32"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "MarketStatus"
+              }
+            }
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TraderPass",
+      "docs": [
+        "Proof that the gatekeeper approved `trader` for this pool (KYC / eligibility done off-chain)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "trader",
+            "type": "pubkey"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "LP_MINT_SEED",
+      "type": "bytes",
+      "value": "[108, 112]"
+    },
+    {
+      "name": "PASS_SEED",
+      "type": "bytes",
+      "value": "[112, 97, 115, 115]"
+    },
+    {
+      "name": "POOL_SEED",
+      "type": "bytes",
+      "value": "[112, 111, 111, 108]"
+    }
+  ]
+}

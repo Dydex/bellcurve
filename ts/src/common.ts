@@ -66,9 +66,10 @@ export function poolParams(sigmaOpenBps: number, sigmaClosedBps: number) {
     baseHalfSpreadBps: 5,
     sigmaOpenBps,
     sigmaClosedBps,
-    spreadZBps: 10_000,
+    // 1.5 sigma: at 1 sigma about a third of weekends would move past the quote.
+    spreadZBps: 15_000,
     maxHalfSpreadBps: 1_500,
-    inventorySkewBps: 100,
+    inventorySkewBps: 10,
     targetBaseWeightBps: 5_000,
     impactBps: 20_000,
     feeBps: 5,

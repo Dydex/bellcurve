@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07090d;
+  --panel: #0d1218;
+  --panel-2: #121922;
+  --line: #1c2531;
+  --text: #e6ebf1;
+  --muted: #8793a3;
+  --dim: #5b6676;
+  --bell: #f2b544;
+  --open: #3dd68c;
+  --closed: #7c9cff;
+  --halted: #ff6b6b;
+  --cpmm: #8fa3c8;
+  --cpmm100: #56647d;
+  --naive: #e5675d;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-dim: var(--dim);
+  --color-bell: var(--bell);
+  --color-open: var(--open);
+  --color-closed: var(--closed);
+  --color-halted: var(--halted);
+  --color-cpmm: var(--cpmm);
+  --color-cpmm100: var(--cpmm100);
+  --color-naive: var(--naive);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.num {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.live-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
