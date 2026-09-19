@@ -4,9 +4,9 @@
 //!
 //! - Open: the stock exchange discovers the price, so the pool quotes tightly around
 //!   the keeper's fresh reference price (a small inventory skew keeps it balanced).
-//! - Closed: nobody discovers the price but the pool itself, so its mid moves with its
-//!   own inventory like a constant-product pool anchored at the last close, and the
-//!   spread widens with `sigma * sqrt(time since close)` to cover the uncertainty.
+//! - Closed: nobody discovers the price but the pool itself, so trades move along
+//!   `x * y = k` on virtual reserves that start at the closing price, and the spread
+//!   widens with `sigma * sqrt(time since close)` to cover the uncertainty.
 //! - Halted: no trading.
 //!
 //! Everything is integer arithmetic so the on-chain program and the off-chain
@@ -109,6 +109,11 @@ pub struct Market {
     pub ref_ts: i64,
     /// When the underlying market last closed.
     pub close_ts: i64,
+    /// Virtual constant-product reserves that price trades while the market is closed
+    /// (raw base units and quote units). Set at the close to a balanced pool worth the
+    /// same as the real one at the closing price; every closed-hours trade moves them.
+    pub virtual_base: u64,
+    pub virtual_quote: u64,
 }
 
 /// Converts raw base-token units to shares: `shares = raw * multiplier / 10^decimals`.
@@ -148,6 +153,17 @@ impl BaseToken {
         let raw = value.checked_mul(self.scale()?).ok_or(MathError::Overflow)? / denom;
         u64::try_from(raw).map_err(|_| MathError::Overflow)
     }
+
+    /// Price per share implied by `value` quote units for `raw` base units, rounded down.
+    pub fn price_of(&self, raw: u64, value: u128) -> Result<u128> {
+        let denom = (raw as u128)
+            .checked_mul(self.multiplier_e9 as u128)
+            .ok_or(MathError::Overflow)?;
+        if denom == 0 {
+            return Err(MathError::NoPrice);
+        }
+        Ok(value.checked_mul(self.scale()?).ok_or(MathError::Overflow)? / denom)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -163,7 +179,8 @@ pub struct Quote {
     pub bid: u64,
     pub ask: u64,
     pub half_spread_bps: u32,
-    /// Positive when the pool holds too much base and leans its mid down.
+    /// How far the mid sits below the reference price: inventory skew while open,
+    /// price discovered by the virtual curve while closed.
     pub skew_bps: i32,
     pub base_weight_bps: u32,
 }
@@ -185,6 +202,8 @@ pub struct SwapResult {
     pub impact_bps: u32,
     pub quote: Quote,
     pub reserves_after: Reserves,
+    /// Virtual reserves after the trade (unchanged while the market is open).
+    pub virtual_after: (u64, u64),
 }
 
 pub fn isqrt(n: u128) -> u128 {
@@ -278,21 +297,21 @@ pub fn band_bps(p: &Params, state: MarketState) -> u32 {
     }
 }
 
-/// Mid price while the market is closed: the marginal price of a constant-product pool
-/// that held the target weight at the last reference price. Selling stock into the pool
-/// lowers it and buying raises it, so the pool discovers the price while no exchange does.
-pub fn closed_mid(p: &Params, price: u64, weight_bps: u32) -> Result<u128> {
-    let w = weight_bps as u128;
-    let target = p.target_base_weight_bps as u128;
-    if w == 0 || w >= BPS {
-        return Err(MathError::InventoryLimit);
+/// Balanced virtual reserves worth the pool's value at the closing price. Set at the close,
+/// they start the closed-market curve exactly at the closing price, so the mid is continuous.
+pub fn virtual_reserves_at_close(tok: &BaseToken, r: &Reserves, price: u64) -> Result<(u64, u64)> {
+    let half = pool_value(tok, r, price)? / 2;
+    Ok((tok.raw_for_value(half, price)?, to_u64(half)?))
+}
+
+/// Mid price while the market is closed: the marginal price of the virtual constant-product
+/// pool. Selling stock into the pool lowers it and buying raises it, so the pool discovers
+/// the price while no exchange does.
+pub fn closed_mid(tok: &BaseToken, m: &Market) -> Result<u128> {
+    if m.virtual_base == 0 || m.virtual_quote == 0 {
+        return Err(MathError::NoPrice);
     }
-    let num = (price as u128)
-        .checked_mul(BPS - w)
-        .and_then(|v| v.checked_mul(target))
-        .ok_or(MathError::Overflow)?;
-    let den = w.checked_mul(BPS - target).ok_or(MathError::Overflow)?;
-    Ok(num / den)
+    tok.price_of(m.virtual_base, m.virtual_quote as u128)
 }
 
 pub fn quote(p: &Params, m: &Market, tok: &BaseToken, r: &Reserves, now: i64) -> Result<Quote> {
@@ -300,7 +319,7 @@ pub fn quote(p: &Params, m: &Market, tok: &BaseToken, r: &Reserves, now: i64) ->
     let weight = base_weight_bps(tok, r, m.ref_price)?;
     let price = m.ref_price as u128;
     let mid = match m.state {
-        MarketState::Closed => closed_mid(p, m.ref_price, weight)?,
+        MarketState::Closed => closed_mid(tok, m)?,
         _ => mul_div(price, (BPS as i128 - skew_bps(p, weight) as i128) as u128, BPS)?,
     };
     // Report how far the mid sits below the reference, whichever rule set it.
@@ -321,11 +340,15 @@ pub fn pool_value(tok: &BaseToken, r: &Reserves, price: u64) -> Result<u128> {
     Ok(tok.value(r.base, price)? + r.quote as u128)
 }
 
-/// Execute an exact-input swap against the pool's quote.
+/// Execute an exact-input swap.
 ///
-/// The execution price is the bid (or ask) moved further by linear price impact
-/// `impact_bps * trade_value / pool_value`, averaged over the trade. The trade is
-/// refused if it lands outside the price band or pushes inventory past its limits.
+/// Open market: the trade fills at the bid (or ask) moved by linear price impact
+/// `impact_bps * trade_value / pool_value`, averaged over the trade.
+/// Closed market: the trade moves along `x * y = k` on the virtual reserves, then pays the
+/// uncertainty spread; the virtual reserves carry the discovered price to the next trade.
+///
+/// Either way the trade is refused if it fills outside the price band around the reference
+/// (in both directions) or pushes inventory past its limits.
 pub fn swap(
     p: &Params,
     m: &Market,
@@ -345,19 +368,31 @@ pub fn swap(
     }
     let price = m.ref_price as u128;
     let band = mul_div(price, band_bps(p, m.state) as u128, BPS)?;
+    let h = q.half_spread_bps as u128;
+    let closed = m.state == MarketState::Closed;
+    let (vb, vq) = (m.virtual_base as u128, m.virtual_quote as u128);
+    let unchanged = (m.virtual_base, m.virtual_quote);
 
-    let (amount_out, fee, exec, impact, after) = match side {
+    let (amount_out, fee, exec, impact, after, virtual_after) = match side {
         Side::SellBase => {
-            let trade_value = tok.value(amount_in, q.bid)?;
-            let impact = mul_div(p.impact_bps as u128, trade_value, total)?;
-            if impact >= 2 * BPS {
-                return Err(MathError::InsufficientLiquidity);
-            }
-            let exec = mul_div(q.bid as u128, 2 * BPS - impact, 2 * BPS)?;
-            if price.saturating_sub(exec) > band {
+            // Quote value of the trade before the fee.
+            let (gross, virtual_after) = if closed {
+                let dx = amount_in as u128;
+                let curve = mul_div(vq, dx, vb + dx)?;
+                (mul_div(curve, BPS - h, BPS)?, (to_u64(vb + dx)?, to_u64(vq - curve)?))
+            } else {
+                let trade_value = tok.value(amount_in, q.bid)?;
+                let impact = mul_div(p.impact_bps as u128, trade_value, total)?;
+                if impact >= 2 * BPS {
+                    return Err(MathError::InsufficientLiquidity);
+                }
+                let exec = mul_div(q.bid as u128, 2 * BPS - impact, 2 * BPS)?;
+                (tok.value(amount_in, to_u64(exec)?)?, unchanged)
+            };
+            let exec = tok.price_of(amount_in, gross)?;
+            if price.abs_diff(exec) > band {
                 return Err(MathError::OutsideBand);
             }
-            let gross = tok.value(amount_in, to_u64(exec)?)?;
             let fee = mul_div_up(gross, p.fee_bps as u128, BPS)?;
             let out = gross.saturating_sub(fee);
             if out >= r.quote as u128 {
@@ -370,19 +405,27 @@ pub fn swap(
             if base_weight_bps(tok, &after, m.ref_price)? > p.max_base_weight_bps {
                 return Err(MathError::InventoryLimit);
             }
-            (to_u64(out)?, to_u64(fee)?, exec, impact, after)
+            let impact = mul_div((q.bid as u128).saturating_sub(exec), BPS, (q.bid as u128).max(1))?;
+            (to_u64(out)?, to_u64(fee)?, exec, impact, after, virtual_after)
         }
         Side::BuyBase => {
             let fee = mul_div_up(amount_in as u128, p.fee_bps as u128, BPS)?;
             let net = amount_in as u128 - fee;
-            let impact = mul_div(p.impact_bps as u128, net, total)?;
-            let exec = mul_div_up(q.ask as u128, 2 * BPS + impact, 2 * BPS)?;
-            if exec.saturating_sub(price) > band {
-                return Err(MathError::OutsideBand);
-            }
-            let out = tok.raw_for_value(net, to_u64(exec)?)?;
+            let (out, virtual_after) = if closed {
+                let dy = mul_div(net, BPS - h, BPS)?;
+                let curve = mul_div(vb, dy, vq + dy)?;
+                (to_u64(curve)?, (to_u64(vb - curve)?, to_u64(vq + dy)?))
+            } else {
+                let impact = mul_div(p.impact_bps as u128, net, total)?;
+                let exec = mul_div_up(q.ask as u128, 2 * BPS + impact, 2 * BPS)?;
+                (tok.raw_for_value(net, to_u64(exec)?)?, unchanged)
+            };
             if out == 0 {
                 return Err(MathError::ZeroAmount);
+            }
+            let exec = tok.price_of(out, net)?;
+            if price.abs_diff(exec) > band {
+                return Err(MathError::OutsideBand);
             }
             if out >= r.base {
                 return Err(MathError::InsufficientLiquidity);
@@ -394,7 +437,8 @@ pub fn swap(
             if base_weight_bps(tok, &after, m.ref_price)? < p.min_base_weight_bps {
                 return Err(MathError::InventoryLimit);
             }
-            (out, to_u64(fee)?, exec, impact, after)
+            let impact = mul_div(exec.saturating_sub(q.ask as u128), BPS, (q.ask as u128).max(1))?;
+            (out, to_u64(fee)?, exec, impact, after, virtual_after)
         }
     };
 
@@ -405,6 +449,7 @@ pub fn swap(
         impact_bps: to_u64(impact)? as u32,
         quote: q,
         reserves_after: after,
+        virtual_after,
     })
 }
 
@@ -483,11 +528,13 @@ mod tests {
     }
 
     fn open_at(price: u64, now: i64) -> Market {
-        Market { state: MarketState::Open, ref_price: price, ref_ts: now, close_ts: 0 }
+        Market { state: MarketState::Open, ref_price: price, ref_ts: now, close_ts: 0, virtual_base: 0, virtual_quote: 0 }
     }
 
     fn closed_since(price: u64, close_ts: i64) -> Market {
-        Market { state: MarketState::Closed, ref_price: price, ref_ts: close_ts, close_ts }
+        // Virtual reserves as set at the close of the balanced pool below.
+        let (virtual_base, virtual_quote) = virtual_reserves_at_close(&TOK, &balanced(), price).unwrap();
+        Market { state: MarketState::Closed, ref_price: price, ref_ts: close_ts, close_ts, virtual_base, virtual_quote }
     }
 
     /// 100 shares at $200 plus $20,000: a balanced $40,000 pool.
@@ -558,25 +605,73 @@ mod tests {
         assert!(q.bid < q.mid && q.mid < q.ask);
     }
 
-    #[test]
-    fn closed_mid_follows_a_constant_product_curve() {
-        let p = params();
-        assert_eq!(closed_mid(&p, 200 * USD, 5_000).unwrap(), 200 * USD as u128);
-        // 55% of value in stock: x*y=k's marginal price is ref * 0.45/0.55.
-        assert_eq!(closed_mid(&p, 200 * USD, 5_500).unwrap(), 163_636_363);
-        assert_eq!(closed_mid(&p, 200 * USD, 0), Err(MathError::InventoryLimit));
+    /// Applies a swap result to the market, as the program does.
+    fn after(m: &Market, s: &SwapResult) -> Market {
+        Market { virtual_base: s.virtual_after.0, virtual_quote: s.virtual_after.1, ..*m }
+    }
 
-        // Selling into a closed pool moves its price; the same inventory while open barely does.
+    #[test]
+    fn closed_market_discovers_price_along_a_constant_product_curve() {
+        let p = params();
+        let mut m = closed_since(200 * USD, 0);
+        assert_eq!(closed_mid(&TOK, &m).unwrap(), 200 * USD as u128);
+
+        // Selling five shares into the closed pool moves its price the way x*y=k does:
+        // virtual (100 shares, $20k) -> (105 shares, $19,048), mid ~$181.4.
         let mut r = balanced();
-        let closed = closed_since(200 * USD, 0);
         for _ in 0..5 {
-            r = swap(&p, &closed, &TOK, &r, 3_600, Side::SellBase, SHARE).unwrap().reserves_after;
+            let s = swap(&p, &m, &TOK, &r, 3_600, Side::SellBase, SHARE).unwrap();
+            r = s.reserves_after;
+            m = after(&m, &s);
         }
-        let q_closed = quote(&p, &closed, &TOK, &r, 3_600).unwrap();
+        let q_closed = quote(&p, &m, &TOK, &r, 3_600).unwrap();
+        assert!(q_closed.mid > 181 * USD && q_closed.mid < 182 * USD, "closed mid {}", q_closed.mid);
+        // The same inventory while open is priced off the reference.
         let q_open = quote(&p, &open_at(200 * USD, 3_600), &TOK, &r, 3_600).unwrap();
-        assert!(q_closed.mid < 192 * USD, "closed mid {}", q_closed.mid);
-        assert!(q_open.mid > 198 * USD, "open mid {}", q_open.mid);
-        assert!(q_closed.skew_bps > 400);
+        assert!(q_open.mid > 199 * USD, "open mid {}", q_open.mid);
+    }
+
+    #[test]
+    fn closed_price_is_continuous_across_the_close() {
+        // Whatever inventory the pool ends the day with, the virtual curve starts at the close.
+        let heavy = Reserves { base: 140 * SHARE, quote: 12_000 * USD };
+        let (virtual_base, virtual_quote) = virtual_reserves_at_close(&TOK, &heavy, 200 * USD).unwrap();
+        let m = Market { virtual_base, virtual_quote, ..closed_since(200 * USD, 0) };
+        assert_eq!(quote(&params(), &m, &TOK, &heavy, 60).unwrap().mid, 200 * USD);
+    }
+
+    #[test]
+    fn closed_round_trips_never_make_money() {
+        // Sell into the closed pool, then immediately buy back with the proceeds, at many sizes
+        // and after the curve has already moved. The trader always ends with less stock.
+        let p = params();
+        // Up to 6 prior sells (~11% down); more would hit the 15% closed band, which is tested below.
+        for pre in [0u64, 3, 6] {
+            let mut m = closed_since(200 * USD, 0);
+            let mut r = balanced();
+            for _ in 0..pre {
+                let s = swap(&p, &m, &TOK, &r, 7_200, Side::SellBase, SHARE).unwrap();
+                r = s.reserves_after;
+                m = after(&m, &s);
+            }
+            for shares in [SHARE / 100, SHARE, 5 * SHARE, 15 * SHARE] {
+                let Ok(sell) = swap(&p, &m, &TOK, &r, 7_200, Side::SellBase, shares) else { continue };
+                let m2 = after(&m, &sell);
+                let buy = swap(&p, &m2, &TOK, &sell.reserves_after, 7_200, Side::BuyBase, sell.amount_out).unwrap();
+                assert!(buy.amount_out < shares, "pre {pre}, size {shares}: got back {}", buy.amount_out);
+            }
+        }
+    }
+
+    #[test]
+    fn band_rejects_mispricing_in_both_directions() {
+        // A closed curve that has drifted to $150 would sell stock far below the $200 reference;
+        // the band refuses that just like it refuses selling far above.
+        let p = params();
+        let m = Market { virtual_base: 100 * SHARE, virtual_quote: 15_000 * USD, ..closed_since(200 * USD, 0) };
+        assert_eq!(swap(&p, &m, &TOK, &balanced(), 60, Side::BuyBase, 100 * USD), Err(MathError::OutsideBand));
+        let m = Market { virtual_base: 100 * SHARE, virtual_quote: 26_000 * USD, ..closed_since(200 * USD, 0) };
+        assert_eq!(swap(&p, &m, &TOK, &balanced(), 60, Side::SellBase, SHARE), Err(MathError::OutsideBand));
     }
 
     #[test]
@@ -595,7 +690,7 @@ mod tests {
         for m in [open_at(200 * USD, 0), closed_since(200 * USD, -7_200)] {
             let r0 = balanced();
             let sell = swap(&p, &m, &TOK, &r0, 0, Side::SellBase, SHARE).unwrap();
-            let buy = swap(&p, &m, &TOK, &sell.reserves_after, 0, Side::BuyBase, sell.amount_out)
+            let buy = swap(&p, &after(&m, &sell), &TOK, &sell.reserves_after, 0, Side::BuyBase, sell.amount_out)
                 .unwrap();
             assert!(buy.amount_out < SHARE, "round trip returned {} raw", buy.amount_out);
         }
@@ -606,8 +701,9 @@ mod tests {
         let p = params();
         let r = swap(&p, &open_at(200 * USD, 0), &TOK, &balanced(), 0, Side::SellBase, SHARE)
             .unwrap();
-        // Selling $199.8 into a $40,000 pool: impact = 10_000 * 199.8 / 40_000 = 49 bps (rounded down).
-        assert_eq!(r.impact_bps, 49);
+        // Selling $199.8 into a $40,000 pool moves the price 49 bps by the end of the trade,
+        // so on average it fills ~24 bps below the bid.
+        assert_eq!(r.impact_bps, 24);
         assert!(r.exec_price < 199_800_000);
         assert!(r.amount_out < 199_800_000);
         assert_eq!(r.reserves_after.base, 101 * SHARE);
