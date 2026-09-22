@@ -1,6 +1,5 @@
 # Bellcurve
 
-**The AMM that knows when Wall Street is closed.**
 
 Bellcurve is a liquidity pool for tokenized stocks on Solana. It quotes tightly around the real price while the stock market is open, discovers the price itself with a widening spread while the market is closed, and stops trading when the exchange halts the stock.
 
