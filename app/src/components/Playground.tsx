@@ -3,7 +3,7 @@
 import { PublicKey } from "@solana/web3.js";
 import { useState } from "react";
 import deployment from "@/data/deployment.json";
-import { depositIx, ensureAccountsIxs, poolAddrs, swapIx, withdrawIx } from "@/lib/actions";
+import { depositIx, ensureAccountsIxs, poolAddrs, swapIx, updateMarketIx, withdrawIx } from "@/lib/actions";
 import { estimateSwap } from "@/lib/quote";
 import { ERRORS, send, type SendResult } from "@/lib/solana";
 import { useNow, usePool } from "@/lib/usePool";
@@ -165,6 +165,34 @@ export default function Playground() {
             </Button>
           </div>
           {log[0] && (log[0].action === "deposit" || log[0].action === "withdraw all") && (
+            <div className="mt-3">
+              <ResultLine result={log[0].result} />
+            </div>
+          )}
+        </div>
+
+        <div className="panel p-5">
+          <div className="eyebrow">Step 4 · try to cheat</div>
+          <h4 className="mt-1 font-semibold">Post a fake price to the shared pool</h4>
+          <p className="mt-1 text-sm text-muted">
+            Only the pool&apos;s keeper may report prices, only its admin may change settings, and only its gatekeeper may
+            approve traders. Your wallet is none of those here, so the program refuses: try telling it NVDA is worth $1.
+          </p>
+          <div className="mt-3">
+            <Button
+              variant="danger"
+              disabled={!signer}
+              busy={busy === "fake price"}
+              onClick={() =>
+                run("fake price", async () => [
+                  await updateMarketIx(shared, signer!.publicKey, "open", 1, Math.floor(Date.now() / 1000)),
+                ])
+              }
+            >
+              Post NVDA = $1
+            </Button>
+          </div>
+          {log[0] && log[0].action === "fake price" && (
             <div className="mt-3">
               <ResultLine result={log[0].result} />
             </div>
