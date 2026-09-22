@@ -10,6 +10,8 @@ export async function GET() {
     }
     return Response.json(cached.data);
   } catch (e: any) {
+    // Devnet hiccup: serve the last good snapshot rather than an error.
+    if (cached) return Response.json(cached.data);
     return Response.json({ error: e.message ?? "failed to read pool" }, { status: 502 });
   }
 }

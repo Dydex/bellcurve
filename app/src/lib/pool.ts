@@ -74,12 +74,18 @@ export async function readPool(): Promise<PoolSnapshot> {
   };
 
   const ok = sigs.filter((s) => !s.err);
-  const fresh = ok.filter((s) => !tradeCache.has(s.signature));
-  if (fresh.length) {
-    const txs = await connection.getTransactions(
-      fresh.map((s) => s.signature),
-      { maxSupportedTransactionVersion: 0, commitment: "confirmed" },
-    );
+  // A few new transactions per poll: the public RPC rate-limits large history requests,
+  // and the trade tape is best-effort while the pool state is not.
+  const fresh = ok.filter((s) => !tradeCache.has(s.signature)).slice(0, 4);
+  const txs = fresh.length
+    ? await connection
+        .getTransactions(
+          fresh.map((s) => s.signature),
+          { maxSupportedTransactionVersion: 0, commitment: "confirmed" },
+        )
+        .catch(() => [])
+    : [];
+  if (txs.length) {
     const parser = new EventParser(programId, coder);
     txs.forEach((tx, i) => {
       const trades: Trade[] = [];
