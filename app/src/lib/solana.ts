@@ -14,6 +14,7 @@ import {
 } from "@solana/web3.js";
 import idl from "@/idl/bellcurve.json";
 import deployment from "@/data/deployment.json";
+import { confirmByPolling } from "./confirm";
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL ?? "https://api.devnet.solana.com";
 export const connection = new Connection(RPC_URL, "confirmed");
@@ -98,10 +99,10 @@ export async function send(
     if (extraSigners.length) tx.partialSign(...extraSigners);
     const signed = await signer.signTransaction(tx);
     const signature = await connection.sendRawTransaction(signed.serialize(), { preflightCommitment: "confirmed" });
-    const res = await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-    if (res.value.err) {
+    const res = await confirmByPolling(connection, signature, lastValidBlockHeight);
+    if (res.err) {
       const tx = await connection.getTransaction(signature, { maxSupportedTransactionVersion: 0, commitment: "confirmed" });
-      return { ok: false, signature, ...explain(res.value.err, tx?.meta?.logMessages ?? []) };
+      return { ok: false, signature, ...explain(res.err, tx?.meta?.logMessages ?? []) };
     }
     return { ok: true, signature, message: "Confirmed on devnet." };
   } catch (e: any) {

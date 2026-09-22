@@ -6,8 +6,9 @@ import {
   createMintToInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 import deployment from "@/data/deployment.json";
+import { confirmByPolling } from "@/lib/confirm";
 import { connection, faucetKeypair } from "@/lib/server";
 
 const SOL = 0.06; // fees plus rent for one sandbox pool
@@ -40,7 +41,9 @@ export async function POST(req: Request) {
     const userBase = getAssociatedTokenAddressSync(base, wallet, false, TOKEN_2022_PROGRAM_ID);
     const userQuote = getAssociatedTokenAddressSync(quote, wallet, false, TOKEN_PROGRAM_ID);
     const userLp = getAssociatedTokenAddressSync(lp, wallet, false, TOKEN_PROGRAM_ID);
-    const tx = new Transaction().add(
+    const conn = connection();
+    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash("confirmed");
+    const tx = new Transaction({ feePayer: faucet.publicKey, blockhash, lastValidBlockHeight }).add(
       SystemProgram.transfer({ fromPubkey: faucet.publicKey, toPubkey: wallet, lamports: SOL * LAMPORTS_PER_SOL }),
       createAssociatedTokenAccountIdempotentInstruction(faucet.publicKey, userBase, wallet, base, TOKEN_2022_PROGRAM_ID),
       createAssociatedTokenAccountIdempotentInstruction(faucet.publicKey, userQuote, wallet, quote, TOKEN_PROGRAM_ID),
@@ -48,7 +51,10 @@ export async function POST(req: Request) {
       createMintToInstruction(base, userBase, faucet.publicKey, SHARES * 1e8, [], TOKEN_2022_PROGRAM_ID),
       createMintToInstruction(quote, userQuote, faucet.publicKey, USDC * 1e6, [], TOKEN_PROGRAM_ID),
     );
-    const signature = await sendAndConfirmTransaction(connection(), tx, [faucet], { commitment: "confirmed" });
+    tx.sign(faucet);
+    const signature = await conn.sendRawTransaction(tx.serialize(), { preflightCommitment: "confirmed" });
+    const { err } = await confirmByPolling(conn, signature, lastValidBlockHeight);
+    if (err) throw new Error(`faucet transaction failed: ${JSON.stringify(err)}`);
     lastByWallet.set(wallet.toBase58(), now);
     lastByIp.set(ip, now);
     return Response.json({ signature, sol: SOL, shares: SHARES, usdc: USDC });
