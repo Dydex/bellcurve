@@ -3,7 +3,7 @@
 
 Bellcurve is a liquidity pool for tokenized stocks on Solana. It quotes tightly around the real price while the stock market is open, discovers the price itself with a widening spread while the market is closed, and stops trading when the exchange halts the stock.
 
-- **Live demo:** _add the deployed URL_
+- **Live demo:** https://bellcurve-three.vercel.app
 - **Pitch video:** _add link_ · **Technical walkthrough:** _add link_
 - **Program on devnet:** [`3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF`](https://explorer.solana.com/address/3z63RQjfsQ4Wx3fvTe1dyrwcXr6qZmv95QFDut44FJeF?cluster=devnet)
 - **Live NVDA pool on devnet:** [`AtW5Ydmez3DbBL1AhXicW38XfSGhX2xyjk5CfheaaD26`](https://explorer.solana.com/address/AtW5Ydmez3DbBL1AhXicW38XfSGhX2xyjk5CfheaaD26?cluster=devnet)
