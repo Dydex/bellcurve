@@ -44,12 +44,19 @@ const camel = (k: string) => k.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 /** Enum variants decode as `{ Closed: {} }`. */
 const variant = (v: any) => Object.keys(v)[0].toLowerCase() as Status;
 
+// Parsed trades by signature, so each transaction is fetched once.
+const tradeCache = new Map<string, Trade[]>();
+
+const amount = (data: Buffer | undefined) => (data && data.length >= 72 ? Number(data.readBigUInt64LE(64)) : 0);
+
 export async function readPool(): Promise<PoolSnapshot> {
   const connection = new Connection(RPC_URL, "confirmed");
-  const [account, base, quote, sigs] = await Promise.all([
-    connection.getAccountInfo(poolKey),
-    connection.getTokenAccountBalance(new PublicKey(deployment.baseVault)),
-    connection.getTokenAccountBalance(new PublicKey(deployment.quoteVault)),
+  const [[account, baseVault, quoteVault], sigs] = await Promise.all([
+    connection.getMultipleAccountsInfo([
+      poolKey,
+      new PublicKey(deployment.baseVault),
+      new PublicKey(deployment.quoteVault),
+    ]),
     connection.getSignaturesForAddress(poolKey, { limit: 12 }),
   ]);
   if (!account) throw new Error("pool account not found");
@@ -66,31 +73,35 @@ export async function readPool(): Promise<PoolSnapshot> {
     virtualQuote: num(m.virtual_quote) / USD,
   };
 
-  const trades: Trade[] = [];
   const ok = sigs.filter((s) => !s.err);
-  const txs = await connection.getTransactions(
-    ok.map((s) => s.signature),
-    { maxSupportedTransactionVersion: 0, commitment: "confirmed" },
-  );
-  const parser = new EventParser(programId, coder);
-  txs.forEach((tx, i) => {
-    for (const ev of parser.parseLogs(tx?.meta?.logMessages ?? [])) {
-      if (ev.name !== "SwapExecuted") continue;
-      const d: any = ev.data;
-      const sell = num(d.side) === 0;
-      const shares = (sell ? num(d.amount_in) : num(d.amount_out)) / SHARE;
-      trades.push({
-        signature: ok[i].signature,
-        side: sell ? "sell" : "buy",
-        shares,
-        price: num(d.exec_price) / USD,
-        refPrice: num(d.ref_price) / USD,
-        halfSpreadBps: num(d.half_spread_bps),
-        status: variant(d.status),
-        ts: num(d.ts),
-      });
-    }
-  });
+  const fresh = ok.filter((s) => !tradeCache.has(s.signature));
+  if (fresh.length) {
+    const txs = await connection.getTransactions(
+      fresh.map((s) => s.signature),
+      { maxSupportedTransactionVersion: 0, commitment: "confirmed" },
+    );
+    const parser = new EventParser(programId, coder);
+    txs.forEach((tx, i) => {
+      const trades: Trade[] = [];
+      for (const ev of parser.parseLogs(tx?.meta?.logMessages ?? [])) {
+        if (ev.name !== "SwapExecuted") continue;
+        const d: any = ev.data;
+        const sell = num(d.side) === 0;
+        trades.push({
+          signature: fresh[i].signature,
+          side: sell ? "sell" : "buy",
+          shares: (sell ? num(d.amount_in) : num(d.amount_out)) / SHARE,
+          price: num(d.exec_price) / USD,
+          refPrice: num(d.ref_price) / USD,
+          halfSpreadBps: num(d.half_spread_bps),
+          status: variant(d.status),
+          ts: num(d.ts),
+        });
+      }
+      if (tx) tradeCache.set(fresh[i].signature, trades);
+    });
+  }
+  const trades = ok.flatMap((s) => tradeCache.get(s.signature) ?? []);
 
   return {
     ticker: deployment.ticker,
@@ -99,7 +110,7 @@ export async function readPool(): Promise<PoolSnapshot> {
     now: Math.floor(Date.now() / 1000),
     params,
     market,
-    reserves: { base: Number(base.value.amount) / SHARE, quote: Number(quote.value.amount) / USD },
+    reserves: { base: amount(baseVault?.data) / SHARE, quote: amount(quoteVault?.data) / USD },
     totalVolume: num(pool.total_volume) / USD,
     totalFees: num(pool.total_fees) / USD,
     trades,

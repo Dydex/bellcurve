@@ -5,7 +5,7 @@ let cached: { at: number; data: PoolSnapshot } | null = null;
 
 export async function GET() {
   try {
-    if (!cached || Date.now() - cached.at > 5_000) {
+    if (!cached || Date.now() - cached.at > 8_000) {
       cached = { at: Date.now(), data: await readPool() };
     }
     return Response.json(cached.data);
