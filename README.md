@@ -117,6 +117,7 @@ Click **Connect** for a demo wallet kept in the browser (or Phantom on devnet), 
 | [`crates/bellcurve-math/`](crates/bellcurve-math/) | Integer-only pricing math, shared by the program and the backtester |
 | [`crates/backtest/`](crates/backtest/) | The backtester |
 | [`ts/`](ts/) | Devnet setup, keeper, configuration and swap scripts |
+| [`.github/workflows/keeper.yml`](.github/workflows/keeper.yml) | Runs the devnet keeper around the clock on GitHub Actions with a key that can only post market updates |
 | [`app/`](app/) | Next.js dashboard |
 | [`scripts/`](scripts/) | Price-data download and dashboard-data build |
 | [`data/raw/`](data/raw/) | Hourly price history used by the backtest |
@@ -155,6 +156,7 @@ anchor deploy --provider.cluster devnet
 cd ts && pnpm install
 pnpm exec tsx src/setup.ts NVDA 100000   # test stock, test USDC, pool, liquidity
 pnpm exec tsx src/keeper.ts              # keep the pool in sync with the real market
+pnpm exec tsx src/set-keeper.ts <pubkey> # hand the keeper role to a dedicated key
 pnpm exec tsx src/swap.ts buy 100        # trade from the terminal
 
 # Dashboard
