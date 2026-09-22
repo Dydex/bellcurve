@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { REPO_URL } from "@/lib/links";
 import WalletButton from "./WalletButton";
 
 const LINKS = [
@@ -40,6 +41,9 @@ export default function Header() {
                 {l.label}
               </Link>
             ))}
+            <a href={REPO_URL} target="_blank" className="rounded-lg px-3 py-1.5 text-sm text-muted transition hover:text-text">
+              GitHub ↗
+            </a>
           </nav>
         </div>
         <div className="flex items-center gap-3">

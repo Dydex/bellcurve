@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import Providers from "@/components/Providers";
+import { REPO_URL } from "@/lib/links";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -22,7 +23,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <footer className="mx-auto mt-24 max-w-7xl border-t border-line px-5 py-8 text-xs text-dim">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>Bellcurve · built on Solana for Stocklana</span>
+              <span>
+                Bellcurve · built on Solana for Stocklana ·{" "}
+                <a href={REPO_URL} target="_blank" className="hover:text-muted">
+                  source on GitHub
+                </a>
+              </span>
               <span>Devnet demo with test tokens · not investment advice</span>
             </div>
           </footer>
