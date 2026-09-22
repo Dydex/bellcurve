@@ -1,0 +1,39 @@
+# Always-on keeper: keeps the devnet pool's market status and NVDA price current.
+#
+# Each run loops for just under six hours (the job limit). A run is scheduled every hour, and
+# the concurrency group queues it behind the current one, so the next run takes over as soon
+# as the current one exits. The key in KEEPER_KEYPAIR can only post market updates.
+name: keeper
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keeper
+  cancel-in-progress: false
+
+jobs:
+  keeper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    defaults:
+      run:
+        working-directory: ts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ts/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: ./node_modules/.bin/tsx src/keeper.ts
+        env:
+          KEEPER_KEYPAIR: ${{ secrets.KEEPER_KEYPAIR }}
+          RPC_URL: ${{ secrets.RPC_URL || 'https://api.devnet.solana.com' }}
+          KEEPER_RUN_SECS: 20880
