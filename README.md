@@ -101,12 +101,14 @@ The backtest is simulated and says nothing about future returns. Full results ar
 
 ## Try it on devnet
 
-The dashboard ([`app/`](app/)) shows the live NVDA pool, the weekend-gap chart, the backtest and Nasdaq's live halt feed, and lets anyone test every rule:
+The site ([`app/`](app/)) has four pages:
 
-1. **Try it → Use a demo wallet → Get test tokens.** The demo wallet is a key kept in your browser; the faucet sends devnet SOL, test NVDA and test USDC.
-2. **Trade the shared NVDA pool.** The preview shows the fill, or which rule will refuse the trade, before you sign.
-3. **Try to cheat:** post NVDA = $1 to the shared pool and watch the program refuse, because you are not its keeper.
-4. **Run your own pool.** One click creates a private test stock, test USDC and pool where you are the keeper, the issuer and the admin. Open, close and halt the market, freeze the keeper, pay a dividend, split the stock, switch on permissioned mode, set a volume cap and dump 40% of the pool. A checklist ticks off each behavior as you trigger it on devnet. Sandboxes run at 60× speed, so a minute of closed time widens the spread like an hour does.
+- **Landing** — the live NVDA pool at a glance, the headline results and how Bellcurve maps to the SEC exemption.
+- **Trade** — a swap and liquidity card on the shared devnet NVDA pool, the live quote plotted against three years of real weekend gaps, and the on-chain trade tape. The swap preview shows the fill, or which rule will refuse the trade, before you sign.
+- **Lab** — create a private test stock, test USDC and pool, then play every role: **Keeper** (open, close, halt, freeze the price feed), **Issuer** (stock dividend, 2-for-1 split), **Compliance** (permissioned mode, trader passes, volume cap), **Trader** (swaps, oversized orders, deposits, withdrawals) and **Attacker** (post a fake price to the shared pool). A checklist ticks off each of 11 behaviors as it is verified on devnet. Lab pools run at 60× speed, so a minute of closed market widens the spread like an hour does.
+- **Research** — the backtest, the weekend-gap chart for all six stocks and Nasdaq's live halt feed.
+
+Click **Connect** for a demo wallet kept in the browser (or Phantom on devnet), then **Get test tokens** from the same menu.
 
 ## Repository layout
 
