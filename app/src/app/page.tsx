@@ -2,6 +2,7 @@ import Backtest, { type BacktestData } from "@/components/Backtest";
 import BellCurve, { type Gap } from "@/components/BellCurve";
 import Halts from "@/components/Halts";
 import LivePool from "@/components/LivePool";
+import TryIt from "@/components/TryIt";
 import backtestJson from "@/data/backtest.json";
 import gapsJson from "@/data/gaps.json";
 
@@ -56,6 +57,7 @@ export default function Home() {
         </div>
         <nav className="flex items-center gap-5 text-sm text-muted">
           <a href="#live" className="hover:text-text">Live pool</a>
+          <a href="#try" className="hover:text-text">Try it</a>
           <a href="#backtest" className="hover:text-text">Backtest</a>
           <a href="#how" className="hover:text-text">How it works</a>
           <a href={REPO} className="hover:text-text" target="_blank">GitHub</a>
@@ -107,6 +109,10 @@ export default function Home() {
       <section id="live" className="scroll-mt-6 space-y-6">
         <LivePool />
         <BellCurve gaps={gaps} sigmaClosed={sigmaClosed} />
+      </section>
+
+      <section id="try" className="scroll-mt-6 pt-14">
+        <TryIt />
       </section>
 
       <section id="backtest" className="scroll-mt-6 pt-14">
