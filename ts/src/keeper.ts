@@ -11,7 +11,7 @@
 // this long, so a scheduled CI job can hand over to the next one).
 
 import { PublicKey } from "@solana/web3.js";
-import { bn, keypairFromEnv, makeProgram, readDeployment, statusArg, type Status, USD } from "./common.js";
+import { bn, keypairFromEnv, makeProgram, sendPolled, readDeployment, statusArg, type Status, USD } from "./common.js";
 import { isHalted, lastClose, latestPrint, session } from "./market.js";
 
 const INTERVAL_MS = Number(process.env.KEEPER_INTERVAL_MS ?? 15_000);
@@ -58,7 +58,7 @@ async function tick() {
     }
   }
 
-  const sig = await program.methods
+  const ix = await program.methods
     .updateMarket(statusArg(status), bn(price), bn(observed))
     .accountsPartial({
       keeper: program.provider.publicKey!,
@@ -67,7 +67,8 @@ async function tick() {
       baseVault: new PublicKey(dep.baseVault),
       quoteVault: new PublicKey(dep.quoteVault),
     })
-    .rpc();
+    .instruction();
+  const sig = await sendPolled(program, ix);
   log(`${onchain} -> ${status} price=${price ? (price / USD).toFixed(2) : "kept"} observed=${new Date(observed * 1000).toISOString()} ${sig}`);
 }
 

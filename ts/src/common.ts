@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AnchorProvider, BN, Program, Wallet } from "@anchor-lang/core";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, Transaction, type TransactionInstruction } from "@solana/web3.js";
 
 export const ROOT = path.resolve(import.meta.dirname, "../..");
 export const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
@@ -31,6 +31,27 @@ export function makeProgram(wallet = loadKeypair()) {
   const connection = new Connection(RPC_URL, "confirmed");
   const provider = new AnchorProvider(connection, new Wallet(wallet), { commitment: "confirmed" });
   return new Program(idl, provider);
+}
+
+/**
+ * Send and confirm by polling the status over plain HTTP. Anchor's .rpc() waits for a
+ * websocket notification instead, which some RPC providers (Alchemy on Solana) never deliver.
+ */
+export async function sendPolled(program: Program, ix: TransactionInstruction): Promise<string> {
+  const provider = program.provider as AnchorProvider;
+  const { connection, wallet } = provider;
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  const tx = await wallet.signTransaction(new Transaction({ feePayer: wallet.publicKey, blockhash, lastValidBlockHeight }).add(ix));
+  const signature = await connection.sendRawTransaction(tx.serialize(), { preflightCommitment: "confirmed" });
+  for (;;) {
+    const status = (await connection.getSignatureStatuses([signature])).value[0];
+    if (status?.confirmationStatus === "confirmed" || status?.confirmationStatus === "finalized") {
+      if (status.err) throw new Error(`transaction ${signature} failed: ${JSON.stringify(status.err)}`);
+      return signature;
+    }
+    if ((await connection.getBlockHeight("confirmed")) > lastValidBlockHeight) throw new Error(`transaction ${signature} expired`);
+    await new Promise((r) => setTimeout(r, 1000));
+  }
 }
 
 export interface Deployment {
