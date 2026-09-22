@@ -10,3 +10,4 @@ test-ledger
 .env*
 !.env.example
 *.tsbuildinfo
+keeper.log
