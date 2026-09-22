@@ -8,7 +8,7 @@ import {
 } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import deployment from "@/data/deployment.json";
-import { adminKeypair, connection } from "@/lib/server";
+import { connection, faucetKeypair } from "@/lib/server";
 
 const SOL = 0.06; // fees plus rent for one sandbox pool
 const SHARES = 5;
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const admin = adminKeypair();
+    const faucet = faucetKeypair();
     const base = new PublicKey(deployment.baseMint);
     const quote = new PublicKey(deployment.quoteMint);
     const lp = new PublicKey(deployment.lpMint);
@@ -41,14 +41,14 @@ export async function POST(req: Request) {
     const userQuote = getAssociatedTokenAddressSync(quote, wallet, false, TOKEN_PROGRAM_ID);
     const userLp = getAssociatedTokenAddressSync(lp, wallet, false, TOKEN_PROGRAM_ID);
     const tx = new Transaction().add(
-      SystemProgram.transfer({ fromPubkey: admin.publicKey, toPubkey: wallet, lamports: SOL * LAMPORTS_PER_SOL }),
-      createAssociatedTokenAccountIdempotentInstruction(admin.publicKey, userBase, wallet, base, TOKEN_2022_PROGRAM_ID),
-      createAssociatedTokenAccountIdempotentInstruction(admin.publicKey, userQuote, wallet, quote, TOKEN_PROGRAM_ID),
-      createAssociatedTokenAccountIdempotentInstruction(admin.publicKey, userLp, wallet, lp, TOKEN_PROGRAM_ID),
-      createMintToInstruction(base, userBase, admin.publicKey, SHARES * 1e8, [], TOKEN_2022_PROGRAM_ID),
-      createMintToInstruction(quote, userQuote, admin.publicKey, USDC * 1e6, [], TOKEN_PROGRAM_ID),
+      SystemProgram.transfer({ fromPubkey: faucet.publicKey, toPubkey: wallet, lamports: SOL * LAMPORTS_PER_SOL }),
+      createAssociatedTokenAccountIdempotentInstruction(faucet.publicKey, userBase, wallet, base, TOKEN_2022_PROGRAM_ID),
+      createAssociatedTokenAccountIdempotentInstruction(faucet.publicKey, userQuote, wallet, quote, TOKEN_PROGRAM_ID),
+      createAssociatedTokenAccountIdempotentInstruction(faucet.publicKey, userLp, wallet, lp, TOKEN_PROGRAM_ID),
+      createMintToInstruction(base, userBase, faucet.publicKey, SHARES * 1e8, [], TOKEN_2022_PROGRAM_ID),
+      createMintToInstruction(quote, userQuote, faucet.publicKey, USDC * 1e6, [], TOKEN_PROGRAM_ID),
     );
-    const signature = await sendAndConfirmTransaction(connection(), tx, [admin], { commitment: "confirmed" });
+    const signature = await sendAndConfirmTransaction(connection(), tx, [faucet], { commitment: "confirmed" });
     lastByWallet.set(wallet.toBase58(), now);
     lastByIp.set(ip, now);
     return Response.json({ signature, sol: SOL, shares: SHARES, usdc: USDC });

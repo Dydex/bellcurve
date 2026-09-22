@@ -12,6 +12,6 @@ Environment variables (all optional locally):
 
 | Variable | Purpose |
 |---|---|
-| `ADMIN_KEYPAIR` | JSON byte array of the key that funds the faucet. Defaults to `~/.config/solana/id.json` |
+| `FAUCET_KEYPAIR` | JSON byte array of the faucet key (devnet SOL plus the test tokens' mint authority). Defaults to `~/.config/solana/bellcurve-faucet.json` |
 | `RPC_URL` | RPC endpoint for server routes |
 | `NEXT_PUBLIC_RPC_URL` | RPC endpoint for the browser |

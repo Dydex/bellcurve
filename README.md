@@ -163,7 +163,7 @@ python3 ../scripts/build_dashboard_data.py
 pnpm build && pnpm start
 ```
 
-The dashboard's faucet signs with the admin key: `~/.config/solana/id.json` locally, or the `ADMIN_KEYPAIR` environment variable (a JSON byte array) when deployed. `RPC_URL` and `NEXT_PUBLIC_RPC_URL` point the server and the browser at a dedicated RPC endpoint; the public devnet endpoint rate-limits quickly.
+The site's faucet signs with a dedicated faucet key that holds devnet SOL and the test tokens' mint authority, and nothing else: `~/.config/solana/bellcurve-faucet.json` locally, or the `FAUCET_KEYPAIR` environment variable (a JSON byte array) when deployed. `ts/src/faucet-authority.ts` hands the mint authority to it. `RPC_URL` and `NEXT_PUBLIC_RPC_URL` point the server and the browser at a dedicated RPC endpoint; the public devnet endpoint rate-limits quickly.
 
 ## Limitations and next steps
 

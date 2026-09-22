@@ -10,9 +10,13 @@ export function connection() {
   return new Connection(RPC_URL, "confirmed");
 }
 
-/** ADMIN_KEYPAIR (JSON array) in production; the local Solana CLI key in development. */
-export function adminKeypair(): Keypair {
-  const raw = process.env.ADMIN_KEYPAIR ?? fs.readFileSync(path.join(os.homedir(), ".config/solana/id.json"), "utf8");
+/**
+ * The faucet's key: mint authority of the test tokens, funded with devnet SOL, and nothing else.
+ * FAUCET_KEYPAIR (JSON byte array) when deployed; ~/.config/solana/bellcurve-faucet.json locally.
+ */
+export function faucetKeypair(): Keypair {
+  const raw =
+    process.env.FAUCET_KEYPAIR ?? fs.readFileSync(path.join(os.homedir(), ".config/solana/bellcurve-faucet.json"), "utf8");
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw)));
 }
 
