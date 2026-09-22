@@ -119,8 +119,12 @@ export function estimateSwap(p: Params, m: Market, r: Reserves, now: number, sid
   return { out, price, vsRefBps, halfSpreadBps: q.halfSpreadBps };
 }
 
+/** Open market whose keeper price is older than the pool allows: the program refuses trades. */
+export const isStale = (p: Params, m: Market, now: number) => m.status === "open" && now - m.refTs > p.maxStalenessSecs;
+
+/** The pool's current quote, or null when the program would refuse to trade (halted, stale, no price). */
 export function quote(p: Params, m: Market, r: Reserves, now: number): Quote | null {
-  if (m.status === "halted" || m.refPrice === 0) return null;
+  if (m.status === "halted" || m.refPrice === 0 || isStale(p, m, now)) return null;
   const total = r.base * m.refPrice + r.quote;
   const baseWeight = total > 0 ? (r.base * m.refPrice) / total : 0.5;
   if (m.status === "closed") {

@@ -13,6 +13,9 @@ export interface Gap {
 interface Props {
   gaps: Record<string, Gap[]>;
   sigmaClosed: Record<string, number>;
+  /** Show one stock without the ticker tabs. */
+  fixedTicker?: string;
+  title?: string;
 }
 
 const W = 760;
@@ -40,9 +43,10 @@ function paramsFor(sigmaClosedBps: number): Params {
   };
 }
 
-export default function BellCurve({ gaps, sigmaClosed }: Props) {
-  const tickers = Object.keys(gaps);
-  const [ticker, setTicker] = useState("NVDA");
+export default function BellCurve({ gaps, sigmaClosed, fixedTicker, title }: Props) {
+  const tickers = fixedTicker ? [] : Object.keys(gaps);
+  const [picked, setTicker] = useState("NVDA");
+  const ticker = fixedTicker ?? picked;
   const { pool } = usePool();
   const now = useNow();
 
@@ -79,8 +83,8 @@ export default function BellCurve({ gaps, sigmaClosed }: Props) {
     <div className="panel p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="eyebrow">Every weekend since Oct 2023</div>
-          <h3 className="mt-1 text-xl font-semibold">The quote widens as the uncertainty does</h3>
+          <div className="eyebrow">{ticker} · every weekend since Oct 2023</div>
+          <h3 className="mt-1 text-xl font-semibold">{title ?? "The quote widens as the uncertainty does"}</h3>
         </div>
         <div className="flex flex-wrap gap-1">
           {tickers.map((t) => (
@@ -137,7 +141,13 @@ export default function BellCurve({ gaps, sigmaClosed }: Props) {
         {liveHours !== null && (
           <g>
             <line x1={x(liveHours)} x2={x(liveHours)} y1={M.t} y2={H - M.b} stroke="var(--closed)" strokeWidth="1.5" />
-            <text x={x(liveHours) + 6} y={H - M.b - 8} fontSize="11" fill="var(--closed)">
+            <text
+              x={x(liveHours) + (x(liveHours) > W - 180 ? -6 : 6)}
+              textAnchor={x(liveHours) > W - 180 ? "end" : "start"}
+              y={H - M.b - 8}
+              fontSize="11"
+              fill="var(--closed)"
+            >
               live pool now: ±{coneHalfSpreadBps(pool!.params, liveHours).toFixed(0)} bps
             </text>
           </g>

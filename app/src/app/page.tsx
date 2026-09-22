@@ -1,170 +1,191 @@
-import Backtest, { type BacktestData } from "@/components/Backtest";
-import BellCurve, { type Gap } from "@/components/BellCurve";
-import Halts from "@/components/Halts";
-import LivePool from "@/components/LivePool";
-import TryIt from "@/components/TryIt";
-import backtestJson from "@/data/backtest.json";
-import gapsJson from "@/data/gaps.json";
-
-const backtest = backtestJson as unknown as BacktestData;
-const gaps = gapsJson as Record<string, Gap[]>;
-const sigmaClosed = Object.fromEntries(
-  (backtestJson as any).tickers.map((t: any) => [t.ticker, Math.round(t.sigma_closed_bps)]),
-);
-
-const REPO = "https://github.com/Dydex/bellcurve";
-
-function headline() {
-  const t = backtest.tickers.find((x) => x.ticker === "NVDA")!;
-  const bell = t.informed_only.find((v) => v.name === "bellcurve")!;
-  const cpmm = t.informed_only.find((v) => v.name === "cpmm_30bps")!;
-  const flow = t.with_flow;
-  const openCost = (n: string) => flow.find((v) => v.name === n)!.cost_open_bps;
-  return { bell, cpmm, t, bellOpen: openCost("bellcurve"), cpmmOpen: openCost("cpmm_30bps") };
-}
+import Link from "next/link";
+import HeroCard from "@/components/HeroCard";
+import { backtest, headline } from "@/lib/data";
 
 const MODES = [
   {
-    name: "Open",
+    state: "Open",
     color: "var(--open)",
-    title: "Follow the exchange",
-    body: "While NYSE and Nasdaq print prices, the pool quotes a tight spread around the keeper's reference price, like Solana's oracle-driven prop AMMs. Arbitrageurs have nothing stale to pick off.",
+    title: "Tracks the exchange",
+    body: "Quotes a few basis points around the live Nasdaq price. Nothing stale to pick off.",
   },
   {
-    name: "Closed",
+    state: "Closed",
     color: "var(--closed)",
-    title: "Discover the price, carefully",
-    body: "When the exchange goes dark the pool becomes the price-discovery venue: trades move along x·y=k on virtual reserves that start at the closing price, and the spread widens with σ·√(time since close).",
+    title: "Finds the price itself",
+    body: "Trades move the pool's own curve, and the spread widens with the square root of time.",
   },
   {
-    name: "Halted",
+    state: "Halted",
     color: "var(--halted)",
-    title: "Stop when the exchange stops",
-    body: "When Nasdaq halts the stock (news pending, a limit-up/limit-down pause) the keeper posts it on-chain and the program refuses swaps. Withdrawals always work.",
+    title: "Stops with the exchange",
+    body: "Nasdaq halts the stock, the program refuses swaps. Withdrawals always work.",
   },
 ];
 
-export default function Home() {
-  const h = headline();
+const SEC = [
+  ["Halts synced with the exchange", "Keeper reads Nasdaq's halt feed"],
+  ["Volume limits", "Daily cap enforced on-chain"],
+  ["Eligible traders only", "Permissioned mode with trader passes"],
+  ["Public trading activity", "Every swap is an on-chain event"],
+  ["Public, auditable contracts", "Open-source Anchor program on Solana"],
+];
+
+const POOLS = [
+  { name: "cpmm_30bps", label: "Constant-product 0.30%", color: "var(--cpmm)" },
+  { name: "cpmm_100bps", label: "Constant-product 1.00%", color: "var(--cpmm100)" },
+  { name: "oracle_naive", label: "Oracle pool, no market hours", color: "var(--naive)" },
+  { name: "bellcurve", label: "Bellcurve", color: "var(--bell)" },
+];
+
+function Cta({ href, children, primary }: { href: string; children: React.ReactNode; primary?: boolean }) {
   return (
-    <main className="mx-auto max-w-6xl px-5 pb-24">
-      <header className="flex items-center justify-between py-6">
-        <div className="flex items-center gap-2.5">
-          <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden>
-            <path d="M2 21 C 8 21, 9 5, 13 5 S 18 21, 24 21" fill="none" stroke="var(--bell)" strokeWidth="2.4" strokeLinecap="round" />
-          </svg>
-          <span className="text-lg font-semibold tracking-tight">Bellcurve</span>
+    <Link
+      href={href}
+      className={`rounded-xl px-6 py-3 font-semibold transition ${
+        primary ? "bg-bell text-bg hover:brightness-110" : "border border-line bg-panel text-text hover:border-muted"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export default function Home() {
+  const h = headline("NVDA");
+  const nvda = backtest.tickers.find((t) => t.ticker === "NVDA")!;
+  const max = Math.max(...nvda.informed_only.map((v) => Math.abs(v.lp_vs_hodl_pct)));
+
+  return (
+    <main>
+      <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 pt-16 pb-20 lg:grid-cols-[1.1fr_1fr] lg:pt-24">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-line bg-panel px-3 py-1 text-xs text-muted">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-open" /> Live on Solana devnet · built for Stocklana
+          </span>
+          <h1 className="mt-6 text-5xl leading-[1.05] font-semibold tracking-tight sm:text-6xl">
+            The AMM that knows when Wall Street is <span className="text-bell">closed</span>.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg text-muted">
+            Tokenized stocks trade 24/7. The stock market doesn&apos;t. Bellcurve prices every trade by what the real
+            market is doing: open, closed or halted.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Cta href="/trade" primary>
+              Launch app
+            </Cta>
+            <Cta href="/lab">Try the lab</Cta>
+          </div>
+          <p className="mt-6 text-sm text-dim">Exchange-synced halts · Token-2022 native · built for the SEC&apos;s tokenized-stock exemption</p>
         </div>
-        <nav className="flex items-center gap-5 text-sm text-muted">
-          <a href="#live" className="hover:text-text">Live pool</a>
-          <a href="#try" className="hover:text-text">Try it</a>
-          <a href="#backtest" className="hover:text-text">Backtest</a>
-          <a href="#how" className="hover:text-text">How it works</a>
-          <a href={REPO} className="hover:text-text" target="_blank">GitHub</a>
-        </nav>
-      </header>
+        <HeroCard />
+      </section>
 
-      <section className="pt-10 pb-14">
-        <div className="eyebrow">A tokenized-stock AMM for Solana</div>
-        <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
-          The AMM that knows when Wall Street is <span className="text-bell">closed</span>.
-        </h1>
-        <p className="mt-5 max-w-2xl text-lg text-muted">
-          Tokenized stocks trade 24/7, but the stock market doesn&apos;t. Today&apos;s pools price NVDAx like a memecoin, so
-          liquidity providers get picked off every time the real price moves first. Bellcurve follows the exchange while
-          it&apos;s open, discovers the price with a widening spread while it&apos;s closed, and stops when trading halts.
-        </p>
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          <div className="panel p-5">
-            <div className="num text-3xl text-bell">
-              {h.bell.lp_vs_hodl_pct.toFixed(0)}% <span className="text-lg text-dim">vs</span>{" "}
-              <span className="text-cpmm">{h.cpmm.lp_vs_hodl_pct.toFixed(0)}%</span>
+      <section className="border-y border-line bg-panel/40">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            [`${h.bellLoss.toFixed(0)}%`, `vs ${h.cpmmLoss.toFixed(0)}%`, "NVDA liquidity providers' loss to faster traders over 3 years"],
+            [`${h.bellCostOpen.toFixed(0)} bps`, `vs ${h.cpmmCostOpen.toFixed(0)} bps`, "What a trade costs during market hours"],
+            [`${Math.round(h.weekendsBeyondFee * 100)}%`, "of weekends", "moved past a normal pool's fee: free money for arbitrageurs"],
+            ["63%", "after the bell", "of tokenized-stock volume on Solana trades while Wall Street is closed"],
+          ].map(([big, small, label]) => (
+            <div key={label}>
+              <div className="num text-3xl text-bell">
+                {big} <span className="text-base text-dim">{small}</span>
+              </div>
+              <p className="mt-2 text-sm text-muted">{label}</p>
             </div>
-            <p className="mt-2 text-sm text-muted">
-              NVDA liquidity providers&apos; loss to informed traders over {h.t.years.toFixed(1)} years, Bellcurve vs a
-              0.30% constant-product pool.
-            </p>
-          </div>
-          <div className="panel p-5">
-            <div className="num text-3xl text-bell">
-              {h.bellOpen.toFixed(0)} <span className="text-lg text-dim">vs</span>{" "}
-              <span className="text-cpmm">{h.cpmmOpen.toFixed(0)}</span>
-              <span className="text-lg text-dim"> bps</span>
-            </div>
-            <p className="mt-2 text-sm text-muted">
-              What an NVDA trade costs during market hours, because quotes track the exchange instead of lagging it.
-            </p>
-          </div>
-          <div className="panel p-5">
-            <div className="num text-3xl text-bell">{h.bell.worst_weekend_pct.toFixed(2)}%</div>
-            <p className="mt-2 text-sm text-muted">
-              Worst single weekend for Bellcurve LPs, versus up to 2% of the pool for an oracle pool that ignores market
-              hours.
-            </p>
-          </div>
+          ))}
         </div>
       </section>
 
-      <section id="live" className="scroll-mt-6 space-y-6">
-        <LivePool />
-        <BellCurve gaps={gaps} sigmaClosed={sigmaClosed} />
-      </section>
-
-      <section id="try" className="scroll-mt-6 pt-14">
-        <TryIt />
-      </section>
-
-      <section id="backtest" className="scroll-mt-6 pt-14">
-        <Backtest data={backtest} />
-        <p className="mt-4 max-w-4xl text-xs leading-relaxed text-dim">
-          Method: hourly SPY, QQQ, NVDA, TSLA, AAPL and MSTR bars (regular and extended hours) replayed at one-minute
-          resolution with Brownian-bridge paths between prints; while the market is closed the path bridges to the next
-          open, so informed traders learn the gap gradually. Arbitrageurs trade every mispriced pool as far as it pays;
-          uninformed orders are identical across pools. Bellcurve runs the exact pricing crate the on-chain program uses.{" "}
-          {backtest.seeds} seeds; {backtest.oracle_latency_secs}s oracle delay unless noted. Simulated, not a promise of
-          future returns.
-        </p>
-      </section>
-
-      <section id="how" className="scroll-mt-6 pt-14">
-        <div className="eyebrow">How it works</div>
-        <h2 className="mt-1 text-2xl font-semibold">Three market states, one program</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
+      <section className="mx-auto max-w-7xl px-5 pt-24">
+        <div className="max-w-2xl">
+          <div className="eyebrow">How it works</div>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">One pool, three market states</h2>
+        </div>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
           {MODES.map((m) => (
-            <div key={m.name} className="panel p-5">
-              <span className="num text-xs font-semibold uppercase tracking-wider" style={{ color: m.color }}>
-                {m.name}
+            <div key={m.state} className="panel p-6">
+              <span className="num rounded-full border px-2.5 py-0.5 text-xs font-semibold" style={{ borderColor: m.color, color: m.color }}>
+                {m.state}
               </span>
-              <h3 className="mt-2 font-semibold">{m.title}</h3>
+              <h3 className="mt-4 text-lg font-semibold">{m.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{m.body}</p>
             </div>
           ))}
         </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="panel p-5 text-sm leading-relaxed text-muted">
-            <h3 className="mb-2 font-semibold text-text">Built for the SEC&apos;s new tokenized-stock exemption</h3>
-            On September 17, 2026 the SEC let tokenized US stocks trade through permissioned AMMs on public chains, with
-            synchronized halts, volume caps and real shareholder rights. Bellcurve already has the plumbing: keeper-synced
-            halts, price bands, per-day volume caps, and optional trader passes for permissioned pools.
+      </section>
+
+      <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 pt-24 lg:grid-cols-2">
+        <div>
+          <div className="eyebrow">Proof</div>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">Same money, same prices, same traders</h2>
+          <p className="mt-4 text-muted">
+            Three years of real NVDA prices replayed minute by minute through four pools, each starting with $100,000.
+            Faster traders always know the true price. Bellcurve runs the exact code deployed on-chain.
+          </p>
+          <div className="mt-6">
+            <Cta href="/research">See the research</Cta>
           </div>
-          <div className="panel p-5 text-sm leading-relaxed text-muted">
-            <h3 className="mb-2 font-semibold text-text">Tokenized-stock native</h3>
-            Reads the Token-2022 Scaled UI Amount multiplier that issuers like xStocks use for dividends and splits, so a
-            corporate action never misprices the pool. Deposits are only valued against a fresh open-market price;
-            withdrawals work in every state.
+        </div>
+        <div className="panel p-6">
+          <div className="text-sm text-muted">NVDA · liquidity providers vs simply holding</div>
+          <div className="mt-5 space-y-4">
+            {POOLS.map((p) => {
+              const v = nvda.informed_only.find((x) => x.name === p.name)!.lp_vs_hodl_pct;
+              return (
+                <div key={p.name}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className={p.name === "bellcurve" ? "font-semibold text-bell" : "text-muted"}>{p.label}</span>
+                    <span className="num">{v.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-3 rounded-full bg-panel-2">
+                    <div className="h-3 rounded-full" style={{ width: `${Math.max((Math.abs(v) / max) * 100, 1.5)}%`, background: p.color }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="pt-14">
-        <Halts />
+      <section className="mx-auto max-w-7xl px-5 pt-24">
+        <div className="panel grid gap-10 p-8 lg:grid-cols-[1fr_1.3fr]">
+          <div>
+            <div className="eyebrow">Regulation-ready</div>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight">Built for the SEC&apos;s new exemption</h2>
+            <p className="mt-4 text-muted">
+              On September 17, 2026 the SEC opened tokenized US stocks to permissioned AMMs on public blockchains, with
+              conditions attached. Bellcurve already meets them in code.
+            </p>
+          </div>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {SEC.map(([cond, how]) => (
+              <li key={cond} className="rounded-xl border border-line bg-panel-2 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <span className="text-open">✓</span>
+                  {cond}
+                </div>
+                <div className="mt-1 text-sm text-muted">{how}</div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
-      <footer className="mt-16 border-t border-line pt-6 text-xs text-dim">
-        Bellcurve · built for Stocklana on Solana · devnet demo with test tokens, not investment advice ·{" "}
-        <a href={REPO} className="hover:text-muted">source</a>
-      </footer>
+      <section className="mx-auto max-w-7xl px-5 pt-24 text-center">
+        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Trade the live pool, or break your own.</h2>
+        <p className="mx-auto mt-3 max-w-xl text-muted">
+          A demo wallet and test tokens in one click. Every action is a real transaction on Solana devnet.
+        </p>
+        <div className="mt-8 flex justify-center gap-3">
+          <Cta href="/trade" primary>
+            Launch app
+          </Cta>
+          <Cta href="/lab">Open the lab</Cta>
+        </div>
+      </section>
     </main>
   );
 }
