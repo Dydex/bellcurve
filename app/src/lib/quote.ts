@@ -55,6 +55,70 @@ export interface Quote {
   hours: number;
 }
 
+export interface Estimate {
+  /** shares (buy) or USD (sell) */
+  out: number;
+  /** USD per share */
+  price: number;
+  vsRefBps: number;
+  halfSpreadBps: number;
+  /** Program error the trade would hit, if any. */
+  refusal?: string;
+}
+
+/**
+ * Preview of `swap` for the UI, mirroring bellcurve-math: linear impact while open,
+ * x*y=k on the virtual reserves while closed, then the band and inventory checks.
+ * `amount` is shares for a sell and USD for a buy.
+ */
+export function estimateSwap(p: Params, m: Market, r: Reserves, now: number, side: "sell" | "buy", amount: number): Estimate | null {
+  if (!(amount > 0)) return null;
+  const refuse = (refusal: string): Estimate => ({ out: 0, price: 0, vsRefBps: 0, halfSpreadBps: 0, refusal });
+  if (m.status === "halted") return refuse("Halted");
+  if (m.refPrice === 0) return refuse("NoPrice");
+  if (m.status === "open" && now - m.refTs > p.maxStalenessSecs) return refuse("StalePrice");
+  const q = quote(p, m, r, now);
+  if (!q) return null;
+  const fee = p.feeBps / 1e4;
+  const h = q.halfSpreadBps / 1e4;
+  const total = r.base * m.refPrice + r.quote;
+  let out: number;
+  let price: number;
+  let after: Reserves;
+  if (side === "sell") {
+    let gross: number;
+    if (m.status === "closed") {
+      gross = ((m.virtualQuote * amount) / (m.virtualBase + amount)) * (1 - h);
+    } else {
+      const impact = ((p.impactBps / 1e4) * amount * q.bid) / total;
+      gross = amount * q.bid * (1 - impact / 2);
+    }
+    price = gross / amount;
+    out = gross * (1 - fee);
+    after = { base: r.base + amount, quote: r.quote - out };
+    if (out >= r.quote) return refuse("InsufficientLiquidity");
+  } else {
+    const net = amount * (1 - fee);
+    if (m.status === "closed") {
+      const dy = net * (1 - h);
+      out = (m.virtualBase * dy) / (m.virtualQuote + dy);
+    } else {
+      const impact = ((p.impactBps / 1e4) * net) / total;
+      out = net / (q.ask * (1 + impact / 2));
+    }
+    price = net / out;
+    after = { base: r.base - out, quote: r.quote + amount };
+    if (out >= r.base) return refuse("InsufficientLiquidity");
+  }
+  const band = m.status === "open" ? p.bandOpenBps : p.bandClosedBps;
+  const vsRefBps = ((price - m.refPrice) / m.refPrice) * 1e4;
+  if (Math.abs(vsRefBps) > band) return refuse("OutsideBand");
+  const w = (after.base * m.refPrice) / (after.base * m.refPrice + after.quote);
+  if (side === "sell" && w * 1e4 > p.maxBaseWeightBps) return refuse("InventoryLimit");
+  if (side === "buy" && w * 1e4 < p.minBaseWeightBps) return refuse("InventoryLimit");
+  return { out, price, vsRefBps, halfSpreadBps: q.halfSpreadBps };
+}
+
 export function quote(p: Params, m: Market, r: Reserves, now: number): Quote | null {
   if (m.status === "halted" || m.refPrice === 0) return null;
   const total = r.base * m.refPrice + r.quote;
