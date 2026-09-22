@@ -7,16 +7,19 @@
 //   closed -> no prices print; the close time drives the widening spread
 //
 // Usage: pnpm keeper [--once]
+// Env: KEEPER_KEYPAIR (JSON byte array; defaults to the local wallet), KEEPER_RUN_SECS (exit after
+// this long, so a scheduled CI job can hand over to the next one).
 
 import { PublicKey } from "@solana/web3.js";
-import { bn, makeProgram, readDeployment, statusArg, type Status, USD } from "./common.js";
+import { bn, keypairFromEnv, makeProgram, readDeployment, statusArg, type Status, USD } from "./common.js";
 import { isHalted, lastClose, latestPrint, session } from "./market.js";
 
 const INTERVAL_MS = Number(process.env.KEEPER_INTERVAL_MS ?? 15_000);
 // Re-post an unchanged open price this often so it never goes stale on-chain.
 const REFRESH_SECS = 60;
+const RUN_SECS = Number(process.env.KEEPER_RUN_SECS ?? 0);
 
-const program = makeProgram();
+const program = makeProgram(keypairFromEnv("KEEPER_KEYPAIR"));
 const dep = readDeployment();
 const pool = new PublicKey(dep.pool);
 
@@ -73,14 +76,15 @@ function log(msg: string) {
 }
 
 async function main() {
-  log(`keeper for pool ${pool.toBase58()} on ${dep.cluster}`);
+  log(`keeper ${program.provider.publicKey!.toBase58()} for pool ${pool.toBase58()} on ${dep.cluster}`);
+  const stopAt = RUN_SECS ? Date.now() + RUN_SECS * 1000 : Infinity;
   do {
     try {
       await tick();
     } catch (e: any) {
       log(`error: ${e.message ?? e}`);
     }
-    if (process.argv.includes("--once")) break;
+    if (process.argv.includes("--once") || Date.now() >= stopAt) break;
     await new Promise((r) => setTimeout(r, INTERVAL_MS));
   } while (true);
 }

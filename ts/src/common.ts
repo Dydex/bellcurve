@@ -17,8 +17,17 @@ export function loadKeypair(file = process.env.WALLET ?? path.join(os.homedir(),
   return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(file, "utf8"))));
 }
 
+/** A key passed as a JSON byte array in an env var (for servers), else the local wallet file. */
+export function keypairFromEnv(name: string): Keypair {
+  const raw = process.env[name];
+  return raw ? Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw))) : loadKeypair();
+}
+
 export function makeProgram(wallet = loadKeypair()) {
-  const idl = JSON.parse(fs.readFileSync(path.join(ROOT, "target/idl/bellcurve.json"), "utf8"));
+  // Fresh build output when present, else the copy committed for the web app.
+  const built = path.join(ROOT, "target/idl/bellcurve.json");
+  const idlFile = fs.existsSync(built) ? built : path.join(ROOT, "app/src/idl/bellcurve.json");
+  const idl = JSON.parse(fs.readFileSync(idlFile, "utf8"));
   const connection = new Connection(RPC_URL, "confirmed");
   const provider = new AnchorProvider(connection, new Wallet(wallet), { commitment: "confirmed" });
   return new Program(idl, provider);
